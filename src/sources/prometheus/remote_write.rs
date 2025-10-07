@@ -169,7 +169,8 @@ impl RemoteWriteSource {
                 format!("Could not decode write request: {error}"),
             )
         })?;
-        let reject_on_conflict = self.metadata_conflict_strategy == MetadataConflictStrategy::Reject;
+        let reject_on_conflict =
+            self.metadata_conflict_strategy == MetadataConflictStrategy::Reject;
         parser::parse_request(request, reject_on_conflict, self.skip_nan_values).map_err(|error| {
             ErrorMessage::new(
                 StatusCode::BAD_REQUEST,
