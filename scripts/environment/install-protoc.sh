@@ -57,7 +57,7 @@ install_protoc() {
   local download_path="${TMP_DIR}/protoc.zip"
 
   echo "Downloading ${url}"
-  curl -fsSL "${url}" -o "${download_path}"
+  curl -fsSLk "${url}" -o "${download_path}"
 
   unzip -qq "${download_path}" -d "${TMP_DIR}"
   mv -f -v "${TMP_DIR}/bin/protoc" "${install_path}"
