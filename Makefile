@@ -582,41 +582,56 @@ package-arm-unknown-linux-musleabi: target/artifacts/vector-${VERSION}-arm-unkno
 
 .PHONY: package-deb-x86_64-unknown-linux-gnu
 package-deb-x86_64-unknown-linux-gnu: package-x86_64-unknown-linux-gnu ## Build the x86_64 GNU deb package
-	$(CONTAINER_TOOL) run -v  $(PWD):/git/vectordotdev/vector/ -e TARGET=x86_64-unknown-linux-gnu -e VECTOR_VERSION $(ENVIRONMENT_UPSTREAM) cargo vdev package deb
+	$(CONTAINER_TOOL) run -v  $(PWD):/git/vectordotdev/vector/ -e TARGET=x86_64-unknown-linux-gnu -e VECTOR_VERSION $(if $(filter-out undefined,$(origin RUSTUP_USE_CURL)),-e RUSTUP_USE_CURL=$(RUSTUP_USE_CURL),) $(if $(filter-out undefined,$(origin RUSTUP_CURL_OPTIONS)),-e RUSTUP_CURL_OPTIONS=$(RUSTUP_CURL_OPTIONS),) $(if $(filter-out undefined,$(origin CURL_CA_BUNDLE)),-e CURL_CA_BUNDLE=$(CURL_CA_BUNDLE),) $(if $(filter-out undefined,$(origin CARGO_HTTP_CHECK_REVOKE)),-e CARGO_HTTP_CHECK_REVOKE=$(CARGO_HTTP_CHECK_REVOKE),) $(if $(filter-out undefined,$(origin SSL_CERT_FILE)),-e SSL_CERT_FILE=$(SSL_CERT_FILE),) $(if $(filter-out undefined,$(origin REQUESTS_CA_BUNDLE)),-e REQUESTS_CA_BUNDLE=$(REQUESTS_CA_BUNDLE),) $(ENVIRONMENT_UPSTREAM) sh -c '$(if $(RUSTUP_USE_CURL),cat > /tmp/curl_noverify.c << '\''EOFLIB'\'' \
+#define _GNU_SOURCE \
+#include <dlfcn.h> \
+#include <curl/curl.h> \
+CURLcode curl_easy_setopt(CURL *curl, CURLoption option, ...) { \
+    typedef CURLcode (*curl_easy_setopt_t)(CURL *, CURLoption, ...); \
+    static curl_easy_setopt_t real_curl_easy_setopt = NULL; \
+    if (!real_curl_easy_setopt) real_curl_easy_setopt = (curl_easy_setopt_t)dlsym(RTLD_NEXT, "curl_easy_setopt"); \
+    if (option == CURLOPT_SSL_VERIFYPEER || option == CURLOPT_SSL_VERIFYHOST) return CURLE_OK; \
+    va_list args; va_start(args, option); \
+    void *param = va_arg(args, void *); \
+    va_end(args); \
+    return real_curl_easy_setopt(curl, option, param); \
+} \
+EOFLIB \
+&& gcc -shared -fPIC -o /tmp/curl_noverify.so /tmp/curl_noverify.c -ldl -lcurl && export LD_PRELOAD=/tmp/curl_noverify.so &&,) cargo vdev package deb'
 
 .PHONY: package-deb-x86_64-unknown-linux-musl
 package-deb-x86_64-unknown-linux-musl: package-x86_64-unknown-linux-musl ## Build the x86_64 GNU deb package
-	$(CONTAINER_TOOL) run -v  $(PWD):/git/vectordotdev/vector/ -e TARGET=x86_64-unknown-linux-musl -e VECTOR_VERSION $(ENVIRONMENT_UPSTREAM) cargo vdev package deb
+	$(CONTAINER_TOOL) run -v  $(PWD):/git/vectordotdev/vector/ -e TARGET=x86_64-unknown-linux-musl -e VECTOR_VERSION $(if $(filter-out undefined,$(origin RUSTUP_USE_CURL)),-e RUSTUP_USE_CURL=$(RUSTUP_USE_CURL),) $(if $(filter-out undefined,$(origin RUSTUP_CURL_OPTIONS)),-e RUSTUP_CURL_OPTIONS=$(RUSTUP_CURL_OPTIONS),) $(if $(filter-out undefined,$(origin CURL_CA_BUNDLE)),-e CURL_CA_BUNDLE=$(CURL_CA_BUNDLE),) $(if $(filter-out undefined,$(origin CARGO_HTTP_CHECK_REVOKE)),-e CARGO_HTTP_CHECK_REVOKE=$(CARGO_HTTP_CHECK_REVOKE),) $(if $(filter-out undefined,$(origin SSL_CERT_FILE)),-e SSL_CERT_FILE=$(SSL_CERT_FILE),) $(if $(filter-out undefined,$(origin REQUESTS_CA_BUNDLE)),-e REQUESTS_CA_BUNDLE=$(REQUESTS_CA_BUNDLE),) $(ENVIRONMENT_UPSTREAM) sh -c '$(if $(RUSTUP_USE_CURL),mv /usr/bin/curl /usr/bin/curl.real && echo -e "#!/bin/sh\nexec /usr/bin/curl.real -k \"\$$@\"" > /usr/bin/curl && chmod +x /usr/bin/curl &&,) cargo vdev package deb'
 
 .PHONY: package-deb-aarch64
 package-deb-aarch64: package-aarch64-unknown-linux-gnu ## Build the aarch64 deb package
-	$(CONTAINER_TOOL) run -v  $(PWD):/git/vectordotdev/vector/ -e TARGET=aarch64-unknown-linux-gnu -e VECTOR_VERSION $(ENVIRONMENT_UPSTREAM) cargo vdev package deb
+	$(CONTAINER_TOOL) run -v  $(PWD):/git/vectordotdev/vector/ -e TARGET=aarch64-unknown-linux-gnu -e VECTOR_VERSION $(if $(filter-out undefined,$(origin RUSTUP_USE_CURL)),-e RUSTUP_USE_CURL=$(RUSTUP_USE_CURL),) $(if $(filter-out undefined,$(origin RUSTUP_CURL_OPTIONS)),-e RUSTUP_CURL_OPTIONS=$(RUSTUP_CURL_OPTIONS),) $(if $(filter-out undefined,$(origin CURL_CA_BUNDLE)),-e CURL_CA_BUNDLE=$(CURL_CA_BUNDLE),) $(if $(filter-out undefined,$(origin CARGO_HTTP_CHECK_REVOKE)),-e CARGO_HTTP_CHECK_REVOKE=$(CARGO_HTTP_CHECK_REVOKE),) $(if $(filter-out undefined,$(origin SSL_CERT_FILE)),-e SSL_CERT_FILE=$(SSL_CERT_FILE),) $(if $(filter-out undefined,$(origin REQUESTS_CA_BUNDLE)),-e REQUESTS_CA_BUNDLE=$(REQUESTS_CA_BUNDLE),) $(ENVIRONMENT_UPSTREAM) sh -c '$(if $(RUSTUP_USE_CURL),mv /usr/bin/curl /usr/bin/curl.real && echo -e "#!/bin/sh\nexec /usr/bin/curl.real -k \"\$$@\"" > /usr/bin/curl && chmod +x /usr/bin/curl &&,) cargo vdev package deb'
 
 .PHONY: package-deb-armv7-gnu
 package-deb-armv7-gnu: package-armv7-unknown-linux-gnueabihf ## Build the armv7-unknown-linux-gnueabihf deb package
-	$(CONTAINER_TOOL) run -v  $(PWD):/git/vectordotdev/vector/ -e TARGET=armv7-unknown-linux-gnueabihf -e VECTOR_VERSION $(ENVIRONMENT_UPSTREAM) cargo vdev package deb
+	$(CONTAINER_TOOL) run -v  $(PWD):/git/vectordotdev/vector/ -e TARGET=armv7-unknown-linux-gnueabihf -e VECTOR_VERSION $(if $(filter-out undefined,$(origin RUSTUP_USE_CURL)),-e RUSTUP_USE_CURL=$(RUSTUP_USE_CURL),) $(if $(filter-out undefined,$(origin RUSTUP_CURL_OPTIONS)),-e RUSTUP_CURL_OPTIONS=$(RUSTUP_CURL_OPTIONS),) $(if $(filter-out undefined,$(origin CURL_CA_BUNDLE)),-e CURL_CA_BUNDLE=$(CURL_CA_BUNDLE),) $(if $(filter-out undefined,$(origin CARGO_HTTP_CHECK_REVOKE)),-e CARGO_HTTP_CHECK_REVOKE=$(CARGO_HTTP_CHECK_REVOKE),) $(if $(filter-out undefined,$(origin SSL_CERT_FILE)),-e SSL_CERT_FILE=$(SSL_CERT_FILE),) $(if $(filter-out undefined,$(origin REQUESTS_CA_BUNDLE)),-e REQUESTS_CA_BUNDLE=$(REQUESTS_CA_BUNDLE),) $(ENVIRONMENT_UPSTREAM) sh -c '$(if $(RUSTUP_USE_CURL),mv /usr/bin/curl /usr/bin/curl.real && echo -e "#!/bin/sh\nexec /usr/bin/curl.real -k \"\$$@\"" > /usr/bin/curl && chmod +x /usr/bin/curl &&,) cargo vdev package deb'
 
 .PHONY: package-deb-arm-gnu
 package-deb-arm-gnu: package-arm-unknown-linux-gnueabi ## Build the arm-unknown-linux-gnueabi deb package
-	$(CONTAINER_TOOL) run -v  $(PWD):/git/vectordotdev/vector/ -e TARGET=arm-unknown-linux-gnueabi -e VECTOR_VERSION $(ENVIRONMENT_UPSTREAM) cargo vdev package deb
+	$(CONTAINER_TOOL) run -v  $(PWD):/git/vectordotdev/vector/ -e TARGET=arm-unknown-linux-gnueabi -e VECTOR_VERSION $(if $(filter-out undefined,$(origin RUSTUP_USE_CURL)),-e RUSTUP_USE_CURL=$(RUSTUP_USE_CURL),) $(if $(filter-out undefined,$(origin RUSTUP_CURL_OPTIONS)),-e RUSTUP_CURL_OPTIONS=$(RUSTUP_CURL_OPTIONS),) $(if $(filter-out undefined,$(origin CURL_CA_BUNDLE)),-e CURL_CA_BUNDLE=$(CURL_CA_BUNDLE),) $(if $(filter-out undefined,$(origin CARGO_HTTP_CHECK_REVOKE)),-e CARGO_HTTP_CHECK_REVOKE=$(CARGO_HTTP_CHECK_REVOKE),) $(if $(filter-out undefined,$(origin SSL_CERT_FILE)),-e SSL_CERT_FILE=$(SSL_CERT_FILE),) $(if $(filter-out undefined,$(origin REQUESTS_CA_BUNDLE)),-e REQUESTS_CA_BUNDLE=$(REQUESTS_CA_BUNDLE),) $(ENVIRONMENT_UPSTREAM) sh -c '$(if $(RUSTUP_USE_CURL),mv /usr/bin/curl /usr/bin/curl.real && echo -e "#!/bin/sh\nexec /usr/bin/curl.real -k \"\$$@\"" > /usr/bin/curl && chmod +x /usr/bin/curl &&,) cargo vdev package deb'
 
 # rpms
 
 .PHONY: package-rpm-x86_64-unknown-linux-gnu
 package-rpm-x86_64-unknown-linux-gnu: package-x86_64-unknown-linux-gnu ## Build the x86_64 rpm package
-	$(CONTAINER_TOOL) run -v  $(PWD):/git/vectordotdev/vector/ -e TARGET=x86_64-unknown-linux-gnu -e VECTOR_VERSION $(ENVIRONMENT_UPSTREAM) cargo vdev package rpm
+	$(CONTAINER_TOOL) run -v  $(PWD):/git/vectordotdev/vector/ -e TARGET=x86_64-unknown-linux-gnu -e VECTOR_VERSION $(if $(filter-out undefined,$(origin RUSTUP_USE_CURL)),-e RUSTUP_USE_CURL=$(RUSTUP_USE_CURL),) $(if $(filter-out undefined,$(origin RUSTUP_CURL_OPTIONS)),-e RUSTUP_CURL_OPTIONS=$(RUSTUP_CURL_OPTIONS),) $(if $(filter-out undefined,$(origin CURL_CA_BUNDLE)),-e CURL_CA_BUNDLE=$(CURL_CA_BUNDLE),) $(if $(filter-out undefined,$(origin CARGO_HTTP_CHECK_REVOKE)),-e CARGO_HTTP_CHECK_REVOKE=$(CARGO_HTTP_CHECK_REVOKE),) $(if $(filter-out undefined,$(origin SSL_CERT_FILE)),-e SSL_CERT_FILE=$(SSL_CERT_FILE),) $(if $(filter-out undefined,$(origin REQUESTS_CA_BUNDLE)),-e REQUESTS_CA_BUNDLE=$(REQUESTS_CA_BUNDLE),) $(ENVIRONMENT_UPSTREAM) sh -c '$(if $(RUSTUP_USE_CURL),mv /usr/bin/curl /usr/bin/curl.real && echo -e "#!/bin/sh\nexec /usr/bin/curl.real -k \"\$$@\"" > /usr/bin/curl && chmod +x /usr/bin/curl &&,) cargo vdev package rpm'
 
 .PHONY: package-rpm-x86_64-unknown-linux-musl
 package-rpm-x86_64-unknown-linux-musl: package-x86_64-unknown-linux-musl ## Build the x86_64 musl rpm package
-	$(CONTAINER_TOOL) run -v  $(PWD):/git/vectordotdev/vector/ -e TARGET=x86_64-unknown-linux-musl -e VECTOR_VERSION $(ENVIRONMENT_UPSTREAM) cargo vdev package rpm
+	$(CONTAINER_TOOL) run -v  $(PWD):/git/vectordotdev/vector/ -e TARGET=x86_64-unknown-linux-musl -e VECTOR_VERSION $(if $(filter-out undefined,$(origin RUSTUP_USE_CURL)),-e RUSTUP_USE_CURL=$(RUSTUP_USE_CURL),) $(if $(filter-out undefined,$(origin RUSTUP_CURL_OPTIONS)),-e RUSTUP_CURL_OPTIONS=$(RUSTUP_CURL_OPTIONS),) $(if $(filter-out undefined,$(origin CURL_CA_BUNDLE)),-e CURL_CA_BUNDLE=$(CURL_CA_BUNDLE),) $(if $(filter-out undefined,$(origin CARGO_HTTP_CHECK_REVOKE)),-e CARGO_HTTP_CHECK_REVOKE=$(CARGO_HTTP_CHECK_REVOKE),) $(if $(filter-out undefined,$(origin SSL_CERT_FILE)),-e SSL_CERT_FILE=$(SSL_CERT_FILE),) $(if $(filter-out undefined,$(origin REQUESTS_CA_BUNDLE)),-e REQUESTS_CA_BUNDLE=$(REQUESTS_CA_BUNDLE),) $(ENVIRONMENT_UPSTREAM) sh -c '$(if $(RUSTUP_USE_CURL),mv /usr/bin/curl /usr/bin/curl.real && echo -e "#!/bin/sh\nexec /usr/bin/curl.real -k \"\$$@\"" > /usr/bin/curl && chmod +x /usr/bin/curl &&,) cargo vdev package rpm'
 
 .PHONY: package-rpm-aarch64
 package-rpm-aarch64: package-aarch64-unknown-linux-gnu ## Build the aarch64 rpm package
-	$(CONTAINER_TOOL) run -v  $(PWD):/git/vectordotdev/vector/ -e TARGET=aarch64-unknown-linux-gnu -e VECTOR_VERSION $(ENVIRONMENT_UPSTREAM) cargo vdev package rpm
+	$(CONTAINER_TOOL) run -v  $(PWD):/git/vectordotdev/vector/ -e TARGET=aarch64-unknown-linux-gnu -e VECTOR_VERSION $(if $(filter-out undefined,$(origin RUSTUP_USE_CURL)),-e RUSTUP_USE_CURL=$(RUSTUP_USE_CURL),) $(if $(filter-out undefined,$(origin RUSTUP_CURL_OPTIONS)),-e RUSTUP_CURL_OPTIONS=$(RUSTUP_CURL_OPTIONS),) $(if $(filter-out undefined,$(origin CURL_CA_BUNDLE)),-e CURL_CA_BUNDLE=$(CURL_CA_BUNDLE),) $(if $(filter-out undefined,$(origin CARGO_HTTP_CHECK_REVOKE)),-e CARGO_HTTP_CHECK_REVOKE=$(CARGO_HTTP_CHECK_REVOKE),) $(if $(filter-out undefined,$(origin SSL_CERT_FILE)),-e SSL_CERT_FILE=$(SSL_CERT_FILE),) $(if $(filter-out undefined,$(origin REQUESTS_CA_BUNDLE)),-e REQUESTS_CA_BUNDLE=$(REQUESTS_CA_BUNDLE),) $(ENVIRONMENT_UPSTREAM) sh -c '$(if $(RUSTUP_USE_CURL),mv /usr/bin/curl /usr/bin/curl.real && echo -e "#!/bin/sh\nexec /usr/bin/curl.real -k \"\$$@\"" > /usr/bin/curl && chmod +x /usr/bin/curl &&,) cargo vdev package rpm'
 
 .PHONY: package-rpm-armv7hl-gnu
 package-rpm-armv7hl-gnu: package-armv7-unknown-linux-gnueabihf ## Build the armv7hl-unknown-linux-gnueabihf rpm package
-	$(CONTAINER_TOOL) run -v  $(PWD):/git/vectordotdev/vector/ -e TARGET=armv7-unknown-linux-gnueabihf -e ARCH=armv7hl -e VECTOR_VERSION $(ENVIRONMENT_UPSTREAM) cargo vdev package rpm
+	$(CONTAINER_TOOL) run -v  $(PWD):/git/vectordotdev/vector/ -e TARGET=armv7-unknown-linux-gnueabihf -e ARCH=armv7hl -e VECTOR_VERSION $(if $(filter-out undefined,$(origin RUSTUP_USE_CURL)),-e RUSTUP_USE_CURL=$(RUSTUP_USE_CURL),) $(if $(filter-out undefined,$(origin RUSTUP_CURL_OPTIONS)),-e RUSTUP_CURL_OPTIONS=$(RUSTUP_CURL_OPTIONS),) $(if $(filter-out undefined,$(origin CURL_CA_BUNDLE)),-e CURL_CA_BUNDLE=$(CURL_CA_BUNDLE),) $(if $(filter-out undefined,$(origin CARGO_HTTP_CHECK_REVOKE)),-e CARGO_HTTP_CHECK_REVOKE=$(CARGO_HTTP_CHECK_REVOKE),) $(if $(filter-out undefined,$(origin SSL_CERT_FILE)),-e SSL_CERT_FILE=$(SSL_CERT_FILE),) $(if $(filter-out undefined,$(origin REQUESTS_CA_BUNDLE)),-e REQUESTS_CA_BUNDLE=$(REQUESTS_CA_BUNDLE),) $(ENVIRONMENT_UPSTREAM) sh -c '$(if $(RUSTUP_USE_CURL),mv /usr/bin/curl /usr/bin/curl.real && echo -e "#!/bin/sh\nexec /usr/bin/curl.real -k \"\$$@\"" > /usr/bin/curl && chmod +x /usr/bin/curl &&,) cargo vdev package rpm'
 
 ##@ Releasing
 
